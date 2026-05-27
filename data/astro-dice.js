@@ -47,7 +47,7 @@ const HOUSES = [
     { id: 12, name: "第12宫", symbol: "XII", meaning: "潜意识、独处、灵性、隐藏" }
 ];
 
-function rollAstroDice() {
+function generateAstroDice() {
     const planet = PLANETS[Math.floor(Math.random() * PLANETS.length)];
     const sign = SIGNS[Math.floor(Math.random() * SIGNS.length)];
     const house = HOUSES[Math.floor(Math.random() * HOUSES.length)];

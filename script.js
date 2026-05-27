@@ -355,7 +355,11 @@ function rollAstroDice() {
         count++;
         if (count > 12) {
             clearInterval(interval);
-            currentAstro = window.rollAstroDice();
+            currentAstro = {
+                planet: PLANETS[Math.floor(Math.random() * PLANETS.length)],
+                sign: SIGNS[Math.floor(Math.random() * SIGNS.length)],
+                house: HOUSES[Math.floor(Math.random() * HOUSES.length)]
+            };
             showAstroResult(currentAstro);
             document.getElementById('astro-rolling').classList.add('hidden');
             document.getElementById('astro-result').classList.remove('hidden');

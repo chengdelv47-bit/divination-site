@@ -570,13 +570,6 @@ const HOUSES = [
     { id: 11, name: "第11宫", symbol: "XI", meaning: "社交、朋友、理想、团体" },
     { id: 12, name: "第12宫", symbol: "XII", meaning: "潜意识、独处、灵性、隐藏" }
 ];
-function rollAstroDice() {
-    return {
-        planet: PLANETS[Math.floor(Math.random() * PLANETS.length)],
-        sign: SIGNS[Math.floor(Math.random() * SIGNS.length)],
-        house: HOUSES[Math.floor(Math.random() * HOUSES.length)]
-    };
-}
 
 // ===== 主逻辑 =====
 let currentCards = [];
@@ -765,7 +758,11 @@ function resetTarot() {
 
 // Astro
 function rollAstroDice() {
-    var a = window.rollAstroDice();
+    var a = {
+        planet: PLANETS[Math.floor(Math.random() * PLANETS.length)],
+        sign: SIGNS[Math.floor(Math.random() * SIGNS.length)],
+        house: HOUSES[Math.floor(Math.random() * HOUSES.length)]
+    };
     document.getElementById('astro-setup').classList.add('hidden');
     document.getElementById('astro-result').classList.add('hidden');
     document.getElementById('astro-interpretation').classList.add('hidden');

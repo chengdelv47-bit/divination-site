@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星启占卜 — 塔罗牌 · 星骰</title>
+<style>
+/* ======================================
+   星启占卜 — 样式表
+   ====================================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --bg: #0a0a1a;
+    --surface: #12122a;
+    --card-bg: #1a1a3a;
+    --border: #2a2a5a;
+    --gold: #d4a843;
+    --gold-dim: #a08030;
+    --purple: #7c3aed;
+    --purple-dim: #5b21b6;
+    --text: #e8e4f0;
+    --text-dim: #8888aa;
+    --accent-glow: rgba(124, 58, 237, 0.3);
+    --radius: 16px;
+    --radius-sm: 10px;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+#stars {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 20% 60%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1.5px 1.5px at 35% 10%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 50% 80%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1px 1px at 65% 30%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1.5px 1.5px at 75% 70%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 85% 45%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1px 1px at 90% 15%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1.5px 1.5px at 5% 85%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 45% 45%, rgba(255,255,255,0.3), transparent);
+    background-size: 200px 200px;
+    animation: twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes twinkle { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+.modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+    z-index: 1000; display: none;
+    align-items: center; justify-content: center;
+}
+.modal.active { display: flex; }
+.modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px; max-width: 440px; width: 90%; text-align: center;
+}
+.modal-content h2 { margin-bottom: 12px; color: var(--gold); }
+.modal-content p { color: var(--text-dim); margin-bottom: 8px; font-size: 14px; }
+.modal-content .hint { font-size: 12px; color: #666688; }
+.modal-content input {
+    width: 100%; padding: 14px 16px; margin: 20px 0 16px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--card-bg); color: var(--text); font-size: 14px;
+    outline: none; transition: border-color 0.3s;
+}
+.modal-content input:focus { border-color: var(--gold); }
+.modal-content .btn-secondary { margin-top: 8px; }
+.navbar {
+    position: fixed; top: 0; width: 100%; z-index: 100;
+    background: rgba(10,10,26,0.8); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+    max-width: 1100px; margin: 0 auto; padding: 0 24px;
+    height: 60px; display: flex; align-items: center; justify-content: space-between;
+}
+.nav-logo {
+    font-size: 20px; font-weight: 700; color: var(--gold);
+    text-decoration: none; letter-spacing: 1px;
+}
+.nav-links { display: flex; gap: 24px; }
+.nav-links a {
+    color: var(--text-dim); text-decoration: none;
+    font-size: 14px; transition: color 0.3s; cursor: pointer;
+}
+.nav-links a:hover { color: var(--gold); }
+main {
+    position: relative; z-index: 1; max-width: 1100px;
+    margin: 0 auto; padding: 80px 24px 60px; min-height: 100vh;
+}
+.view { display: none; }
+.view.active { display: block; animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.hero { text-align: center; padding: 60px 0 40px; }
+.hero-icon { font-size: 60px; margin-bottom: 16px; animation: spin-glow 6s ease-in-out infinite; }
+@keyframes spin-glow {
+    0%, 100% { text-shadow: 0 0 20px var(--gold); transform: rotate(0deg); }
+    50% { text-shadow: 0 0 40px var(--purple), 0 0 80px var(--purple); transform: rotate(180deg); }
+}
+.hero h1 {
+    font-size: 48px;
+    background: linear-gradient(135deg, var(--gold), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 8px;
+}
+.hero .subtitle { font-size: 18px; color: var(--text-dim); margin-bottom: 6px; }
+.hero .desc { color: #666688; font-size: 14px; }
+.card-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 700px; margin: 0 auto; }
+@media (max-width: 600px) { .card-selector { grid-template-columns: 1fr; } }
+.pick-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 40px 28px; text-align: center;
+    cursor: pointer; transition: all 0.4s; position: relative; overflow: hidden;
+}
+.pick-card::before {
+    content: ''; position: absolute; top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+    opacity: 0; transition: opacity 0.5s;
+}
+.pick-card:hover::before { opacity: 1; }
+.pick-card:hover {
+    border-color: var(--gold); transform: translateY(-6px);
+    box-shadow: 0 12px 40px rgba(212,168,67,0.15);
+}
+.pick-icon { font-size: 48px; margin-bottom: 16px; }
+.pick-card h3 { font-size: 22px; margin-bottom: 8px; color: var(--text); }
+.pick-card p { color: var(--text-dim); font-size: 14px; margin-bottom: 20px; }
+.pick-btn { color: var(--gold); font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
+.view-header { text-align: center; padding: 40px 0 30px; }
+.view-header h2 { font-size: 32px; color: var(--gold); margin-bottom: 8px; }
+.view-header p { color: var(--text-dim); font-size: 14px; }
+.setup-area {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 32px; max-width: 600px; margin: 0 auto;
+}
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 14px; color: var(--text-dim); margin-bottom: 10px; }
+.form-group input {
+    width: 100%; padding: 12px 16px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--card-bg);
+    color: var(--text); font-size: 14px; outline: none; transition: border-color 0.3s;
+}
+.form-group input:focus { border-color: var(--purple); }
+.form-group input::placeholder { color: #555577; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-opt {
+    padding: 10px 22px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--card-bg);
+    color: var(--text-dim); cursor: pointer; font-size: 14px; transition: all 0.3s;
+}
+.btn-opt:hover { border-color: var(--purple); color: var(--text); }
+.btn-opt.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.btn-primary {
+    display: inline-block; padding: 14px 36px; border: none;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--purple), var(--purple-dim));
+    color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: all 0.3s; letter-spacing: 1px;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary {
+    display: inline-block; padding: 12px 28px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: transparent;
+    color: var(--text-dim); font-size: 14px; cursor: pointer; transition: all 0.3s; margin-left: 10px;
+}
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+.hidden { display: none !important; }
+.shuffle-area { text-align: center; padding: 60px 0; }
+.shuffle-cards { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+.sh-card {
+    width: 60px; height: 90px;
+    background: linear-gradient(145deg, var(--purple-dim), #2a0a5a);
+    border: 2px solid var(--gold-dim); border-radius: 8px;
+    animation: shuffle 0.6s ease-in-out infinite alternate;
+}
+.sh-card:nth-child(1) { animation-delay: 0s; }
+.sh-card:nth-child(2) { animation-delay: 0.1s; }
+.sh-card:nth-child(3) { animation-delay: 0.2s; }
+.sh-card:nth-child(4) { animation-delay: 0.3s; }
+.sh-card:nth-child(5) { animation-delay: 0.4s; }
+@keyframes shuffle {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-20px) rotate(3deg); }
+}
+.shuffle-text { color: var(--text-dim); font-size: 16px; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.dice-container { display: flex; justify-content: center; margin-bottom: 24px; }
+.dice {
+    width: 180px; height: 180px;
+    background: linear-gradient(145deg, #1a1a3a, #0a0a2a);
+    border: 2px solid var(--gold); border-radius: 24px;
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: center; position: relative;
+    animation: dice-roll 1s ease-in-out;
+}
+@keyframes dice-roll {
+    0% { transform: rotateX(0deg) rotateY(0deg) scale(0.8); }
+    25% { transform: rotateX(180deg) rotateY(90deg) scale(1.1); }
+    50% { transform: rotateX(360deg) rotateY(180deg) scale(0.9); }
+    75% { transform: rotateX(540deg) rotateY(270deg) scale(1.05); }
+    100% { transform: rotateX(720deg) rotateY(360deg) scale(1); }
+}
+.dice-face { width: 50%; height: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; color: var(--gold); }
+.spread-area { text-align: center; padding: 30px 0; }
+.card-spread { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 30px; }
+.tarot-card { width: 140px; cursor: pointer; transition: all 0.5s; position: relative; }
+.tarot-card-inner {
+    aspect-ratio: 5 / 7;
+    background: linear-gradient(145deg, var(--purple-dim), #2a0a5a);
+    border: 2px solid var(--gold-dim); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; position: relative; overflow: hidden; transition: all 0.6s;
+}
+.tarot-card-inner::before { content: '?'; font-size: 48px; color: var(--gold-dim); opacity: 0.6; }
+.tarot-card.revealed .tarot-card-inner { background: var(--surface); border-color: var(--gold); }
+.tarot-card.revealed .tarot-card-inner::before { display: none; }
+.tarot-card-face { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; width: 100%; height: 100%; }
+.tarot-card.revealed .tarot-card-face { display: flex; }
+.tarot-card-number { font-size: 11px; color: var(--gold-dim); margin-bottom: 4px; }
+.tarot-card-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.tarot-card-icon { font-size: 28px; margin-bottom: 4px; }
+.tarot-card-keywords { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+.tarot-card.revealed:hover { transform: translateY(-10px); z-index: 10; }
+.tarot-card.revealed:hover .tarot-card-inner { box-shadow: 0 12px 40px rgba(212,168,67,0.3); }
+.astro-cards { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.astro-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 32px; text-align: center; min-width: 140px; }
+.astro-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
+.astro-value { display: block; font-size: 42px; margin-bottom: 6px; }
+.astro-name { display: block; font-size: 16px; font-weight: 600; color: var(--gold); }
+.astro-plus { font-size: 28px; color: var(--text-dim); }
+.astro-combination { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 24px; margin-bottom: 24px; display: inline-block; font-size: 14px; color: var(--text-dim); line-height: 1.8; }
+.interpretation { max-width: 700px; margin: 30px auto; padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.interpretation h3 { color: var(--gold); margin-bottom: 20px; font-size: 20px; text-align: center; }
+.reading-text { font-size: 15px; line-height: 1.9; color: var(--text); white-space: pre-wrap; }
+.reading-text p { margin-bottom: 12px; }
+.reading-text strong { color: var(--gold); }
+.reading-loading { text-align: center; padding: 40px 0; }
+.reading-loading p { color: var(--text-dim); margin-top: 16px; }
+.spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tarot-card { animation: cardAppear 0.6s ease backwards; }
+@keyframes cardAppear { from { opacity: 0; transform: scale(0.5) rotateY(180deg); } to { opacity: 1; transform: scale(1) rotateY(0); } }
+.tarot-card:nth-child(1) { animation-delay: 0.1s; }
+.tarot-card:nth-child(2) { animation-delay: 0.2s; }
+.tarot-card:nth-child(3) { animation-delay: 0.3s; }
+.tarot-card:nth-child(4) { animation-delay: 0.4s; }
+.tarot-card:nth-child(5) { animation-delay: 0.5s; }
+.tarot-card:nth-child(6) { animation-delay: 0.6s; }
+.tarot-card:nth-child(7) { animation-delay: 0.7s; }
+.tarot-card:nth-child(8) { animation-delay: 0.8s; }
+.tarot-card:nth-child(9) { animation-delay: 0.9s; }
+.tarot-card:nth-child(10) { animation-delay: 1.0s; }
+.footer { position: relative; z-index: 1; text-align: center; padding: 30px; color: #444466; font-size: 13px; border-top: 1px solid var(--border); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+@media (max-width: 480px) {
+    .hero h1 { font-size: 32px; }
+    .nav-links { gap: 12px; }
+    .nav-links a { font-size: 13px; }
+    .tarot-card { width: 100px; }
+    .astro-item { min-width: 100px; padding: 16px 20px; }
+    .astro-value { font-size: 32px; }
+    .dice { width: 140px; height: 140px; }
+    .dice-face { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<!-- API Key Modal -->
+<div id="api-modal" class="modal">
+    <div class="modal-content">
+        <h2>🔮 配置 AI 解读</h2>
+        <p>输入你的 DeepSeek API Key 以获得 AI 智能解读</p>
+        <p class="hint">密钥仅保存在本地浏览器，不会上传到服务器</p>
+        <input type="password" id="api-key-input" placeholder="sk-..." />
+        <button class="btn-primary" onclick="saveApiKey()">确认</button>
+        <button class="btn-secondary" onclick="testApiConnection()" id="test-api-btn">测试连接</button>
+        <button class="btn-secondary" onclick="skipApiKey()">跳过，稍后设置</button>
+        <div id="test-result" style="margin-top:12px;font-size:13px;min-height:20px;"></div>
+    </div>
+</div>
+
+<!-- Nav -->
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="#" onclick="showView('home')" class="nav-logo">✦ 星启占卜</a>
+        <div class="nav-links">
+            <a href="#" onclick="showView('home')">首页</a>
+            <a href="#" onclick="showView('tarot')">塔罗牌</a>
+            <a href="#" onclick="showView('astro')">星骰</a>
+            <a href="#" onclick="openApiModal()">API</a>
+        </div>
+    </div>
+</nav>
+
+<main id="app">
+
+    <!-- Home -->
+    <section id="view-home" class="view active">
+        <div class="hero">
+            <div class="hero-icon">✦</div>
+            <h1>星启占卜</h1>
+            <p class="subtitle">塔罗牌 &amp; 星骰 · AI 智慧解读</p>
+            <p class="desc">在星辰的指引下，探索你内心的答案</p>
+        </div>
+        <div class="card-selector">
+            <div class="pick-card" onclick="showView('tarot')">
+                <div class="pick-icon">🃏</div>
+                <h3>塔罗牌</h3>
+                <p>抽取塔罗牌，获得来自高我的指引</p>
+                <span class="pick-btn">开始占卜 →</span>
+            </div>
+            <div class="pick-card" onclick="showView('astro')">
+                <div class="pick-icon">🎲</div>
+                <h3>星骰</h3>
+                <p>投掷星骰，解读星辰的讯息</p>
+                <span class="pick-btn">开始占卜 →</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tarot -->
+    <section id="view-tarot" class="view">
+        <div class="view-header">
+            <h2>🃏 塔罗牌占卜</h2>
+            <p>选择牌阵，专注你的问题，然后抽牌</p>
+        </div>
+        <div id="tarot-setup" class="setup-area">
+            <div class="form-group">
+                <label>选择牌阵</label>
+                <div class="btn-group" id="card-count-options">
+                    <button class="btn-opt active" data-value="1">单张</button>
+                    <button class="btn-opt" data-value="3">三张</button>
+                    <button class="btn-opt" data-value="5">五张</button>
+                    <button class="btn-opt" data-value="10">十张</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>你的问题（可选）</label>
+                <input type="text" id="tarot-question" placeholder="例如：我当前的事业发展如何？" />
+            </div>
+            <button class="btn-primary" onclick="startTarotReading()">✨ 开始抽牌</button>
+        </div>
+        <div id="tarot-shuffle" class="shuffle-area hidden">
+            <div class="shuffle-cards">
+                <div class="sh-card"></div><div class="sh-card"></div><div class="sh-card"></div><div class="sh-card"></div><div class="sh-card"></div>
+            </div>
+            <p class="shuffle-text">正在洗牌...</p>
+        </div>
+        <div id="tarot-spread" class="spread-area hidden">
+            <div id="card-spread" class="card-spread"></div>
+            <button class="btn-primary" onclick="interpretTarot()">🔮 AI 解读</button>
+            <button class="btn-secondary" onclick="resetTarot()">重新洗牌</button>
+        </div>
+        <div id="tarot-interpretation" class="interpretation hidden">
+            <h3>🔮 塔罗解读</h3>
+            <div id="tarot-reading-text" class="reading-text"></div>
+            <div class="reading-loading hidden" id="tarot-loading">
+                <div class="spinner"></div>
+                <p id="tarot-loading-text">正在请求 AI 解读...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Astro Dice -->
+    <section id="view-astro" class="view">
+        <div class="view-header">
+            <h2>🎲 星骰占卜</h2>
+            <p>投掷星骰，解读行星、星座与宫位的组合信息</p>
+        </div>
+        <div id="astro-setup" class="setup-area">
+            <div class="form-group">
+                <label>你的问题（可选）</label>
+                <input type="text" id="astro-question" placeholder="例如：我和TA的关系走向如何？" />
+            </div>
+            <button class="btn-primary" onclick="rollAstroDice()">🎲 投掷星骰</button>
+        </div>
+        <div id="astro-rolling" class="shuffle-area hidden">
+            <div class="dice-container">
+                <div class="dice" id="astro-dice-anim">
+                    <div class="dice-face" id="dice-planet">☉</div>
+                    <div class="dice-face" id="dice-sign">♈</div>
+                    <div class="dice-face" id="dice-house">Ⅰ</div>
+                </div>
+            </div>
+            <p class="shuffle-text">星辰之力正在运转...</p>
+        </div>
+        <div id="astro-result" class="spread-area hidden">
+            <div class="astro-cards">
+                <div class="astro-item">
+                    <span class="astro-label">行星</span>
+                    <span class="astro-value" id="astro-planet"></span>
+                    <span class="astro-name" id="astro-planet-name"></span>
+                </div>
+                <div class="astro-plus">+</div>
+                <div class="astro-item">
+                    <span class="astro-label">星座</span>
+                    <span class="astro-value" id="astro-sign"></span>
+                    <span class="astro-name" id="astro-sign-name"></span>
+                </div>
+                <div class="astro-plus">+</div>
+                <div class="astro-item">
+                    <span class="astro-label">宫位</span>
+                    <span class="astro-value" id="astro-house"></span>
+                    <span class="astro-name" id="astro-house-name"></span>
+                </div>
+            </div>
+            <div id="astro-combination" class="astro-combination"></div>
+            <button class="btn-primary" onclick="interpretAstro()">🔮 AI 解读</button>
+            <button class="btn-secondary" onclick="resetAstro()">重新投掷</button>
+        </div>
+        <div id="astro-interpretation" class="interpretation hidden">
+            <h3>🔮 星骰解读</h3>
+            <div id="astro-reading-text" class="reading-text"></div>
+            <div class="reading-loading hidden" id="astro-loading">
+                <div class="spinner"></div>
+                <p id="astro-loading-text">正在请求 AI 解读...</p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="footer">
+    <p>✦ 星启占卜 — 仅供娱乐参考，你的生活由你主宰 ✦</p>
+</footer>
+
+<script>
+// ===== 塔罗牌数据 =====
+const TAROT_CARDS = [
+  { id: 0, name: "愚者", arcana: "major", suit: null, number: "0", keywords: "开始、冒险、天真、自由", upright: "新的开始、冒险精神、活在当下、单纯信任", reversed: "鲁莽、冲动、不切实际、犹豫不决", element: "风", emoji: "🃏" },
+  { id: 1, name: "魔术师", arcana: "major", suit: null, number: "I", keywords: "创造、技能、自信、资源", upright: "创造力、掌握技能、自信心、运用资源", reversed: "欺骗、才能浪费、操纵、缺乏计划", element: "水", emoji: "🎩" },
+  { id: 2, name: "女祭司", arcana: "major", suit: null, number: "II", keywords: "直觉、潜意识、内在智慧", upright: "直觉指引、静观其变、内在智慧、神秘", reversed: "压抑直觉、表面化、拒绝聆听内心", element: "水", emoji: "🌙" },
+  { id: 3, name: "皇后", arcana: "major", suit: null, number: "III", keywords: "丰饶、自然、感官、母性", upright: "丰收、孕育、大自然、享受生活", reversed: "依赖性、创造力受阻、过度物质", element: "土", emoji: "👑" },
+  { id: 4, name: "皇帝", arcana: "major", suit: null, number: "IV", keywords: "权威、稳定、结构、父性", upright: "领导力、秩序、稳定、自律", reversed: "专制、僵化、缺乏纪律、滥用权力", element: "火", emoji: "🏛" },
+  { id: 5, name: "教皇", arcana: "major", suit: null, number: "V", keywords: "传统、信仰、教导、指引", upright: "寻求指引、传统价值、教育、精神成长", reversed: "叛逆、独立、过于保守、教条", element: "土", emoji: "⛪" },
+  { id: 6, name: "恋人", arcana: "major", suit: null, number: "VI", keywords: "爱情、选择、关系、合一", upright: "真爱、和谐关系、重要选择、价值观统一", reversed: "分歧、选择困难、关系破裂、不和谐", element: "风", emoji: "💑" },
+  { id: 7, name: "战车", arcana: "major", suit: null, number: "VII", keywords: "胜利、意志、决心、征服", upright: "克服困难、坚定意志、胜利、行动力", reversed: "失控、缺乏方向、攻击性、挫败", element: "水", emoji: "⚔️" },
+  { id: 8, name: "力量", arcana: "major", suit: null, number: "VIII", keywords: "内在力量、勇气、耐心、慈悲", upright: "内在力量、勇气、耐心、温柔的力量", reversed: "软弱、自我怀疑、缺乏信心、失控", element: "火", emoji: "💪" },
+  { id: 9, name: "隐士", arcana: "major", suit: null, number: "IX", keywords: "内省、独处、智慧、指引", upright: "寻求真理、内省、独处、智慧之光", reversed: "孤独、孤立、退缩、迷失方向", element: "土", emoji: "🏮" },
+  { id: 10, name: "命运之轮", arcana: "major", suit: null, number: "X", keywords: "命运、转变、循环、契机", upright: "命运转折、好运降临、人生循环、机遇", reversed: "厄运、抗拒变化、失控、停滞", element: "火", emoji: "🎡" },
+  { id: 11, name: "正义", arcana: "major", suit: null, number: "XI", keywords: "公正、平衡、真理、因果", upright: "公正裁决、因果报应、平衡、诚实", reversed: "不公正、偏见、逃避责任、失衡", element: "风", emoji: "⚖️" },
+  { id: 12, name: "倒吊人", arcana: "major", suit: null, number: "XII", keywords: "牺牲、放手、新视角、暂停", upright: "换位思考、自愿牺牲、暂停、新视角", reversed: "抗拒牺牲、拖延、无谓牺牲、停滞", element: "水", emoji: "🙃" },
+  { id: 13, name: "死神", arcana: "major", suit: null, number: "XIII", keywords: "结束、转变、重生、放下", upright: "结束旧阶段、转变、新生、放下过去", reversed: "抗拒改变、停滞、恐惧终结", element: "水", emoji: "💀" },
+  { id: 14, name: "节制", arcana: "major", suit: null, number: "XIV", keywords: "平衡、调和、适度、耐心", upright: "平衡调和、耐心、适度、融合", reversed: "失衡、极端、无耐心、不和谐", element: "火", emoji: "⚗️" },
+  { id: 15, name: "恶魔", arcana: "major", suit: null, number: "XV", keywords: "束缚、欲望、执念、物质", upright: "沉迷欲望、束缚、执念、物质主义", reversed: "解脱、觉醒、放下执念、重获自由", element: "土", emoji: "😈" },
+  { id: 16, name: "高塔", arcana: "major", suit: null, number: "XVI", keywords: "崩塌、剧变、觉醒、重建", upright: "突然变故、崩塌、幻灭、重建契机", reversed: "避免灾难、抗拒改变、危机持续", element: "火", emoji: "🗼" },
+  { id: 17, name: "星星", arcana: "major", suit: null, number: "XVII", keywords: "希望、灵感、平静、指引", upright: "希望重生、内心平静、灵感、指引", reversed: "绝望、失去信仰、灵感枯竭、迷茫", element: "风", emoji: "⭐" },
+  { id: 18, name: "月亮", arcana: "major", suit: null, number: "XVIII", keywords: "恐惧、幻觉、潜意识、不安", upright: "潜意识浮现、恐惧、幻觉、不确定", reversed: "克服恐惧、看清真相、释放焦虑", element: "水", emoji: "🌙" },
+  { id: 19, name: "太阳", arcana: "major", suit: null, number: "XIX", keywords: "喜悦、成功、活力、光明", upright: "成功快乐、活力充沛、光明、成就", reversed: "暂时黯淡、过度乐观、小挫折", element: "火", emoji: "☀️" },
+  { id: 20, name: "审判", arcana: "major", suit: null, number: "XX", keywords: "觉醒、重生、评估、召唤", upright: "内心召唤、觉醒、重新评估、宽恕", reversed: "自我怀疑、拒绝觉醒、逃避审判", element: "火", emoji: "📯" },
+  { id: 21, name: "世界", arcana: "major", suit: null, number: "XXI", keywords: "完成、圆满、成就、整合", upright: "圆满达成、完成、旅行、和谐", reversed: "未完成、拖延、停滞、不完整", element: "土", emoji: "🌍" },
+  { id: 22, name: "权杖ACE", arcana: "minor", suit: "权杖", number: "Ace", keywords: "开始、灵感、创造、新项目", upright: "新开始、创造力迸发、冒险、热情", reversed: "延迟开始、创意受阻、缺乏动力", element: "火", emoji: "🔥" },
+  { id: 23, name: "权杖二", arcana: "minor", suit: "权杖", number: "2", keywords: "规划、抉择、未来、世界", upright: "未来规划、大胆抉择、放眼世界", reversed: "犹豫不决、恐惧未知、计划搁置", element: "火", emoji: "🌍" },
+  { id: 24, name: "权杖三", arcana: "minor", suit: "权杖", number: "3", keywords: "远航、探索、预见、扩张", upright: "远见、探索新领域、进步、扩张", reversed: "阻碍延迟、缺乏远见、计划受阻", element: "火", emoji: "⛵" },
+  { id: 25, name: "权杖四", arcana: "minor", suit: "权杖", number: "4", keywords: "庆祝、和谐、家园、稳定", upright: "庆祝、安居乐业、和谐、阶段性成果", reversed: "不稳定、庆祝取消、缺乏归属感", element: "火", emoji: "🏠" },
+  { id: 26, name: "权杖五", arcana: "minor", suit: "权杖", number: "5", keywords: "竞争、冲突、挑战、分歧", upright: "竞争、冲突、意见不合、挑战", reversed: "避免冲突、和解、内部矛盾", element: "火", emoji: "⚔️" },
+  { id: 27, name: "权杖六", arcana: "minor", suit: "权杖", number: "6", keywords: "胜利、认可、成功、凯旋", upright: "胜利、社会认可、好消息、自信", reversed: "骄傲自满、失败、缺乏认可", element: "火", emoji: "🏆" },
+  { id: 28, name: "权杖七", arcana: "minor", suit: "权杖", number: "7", keywords: "防御、坚持、挑战、优势", upright: "坚守立场、勇敢面对、逆境坚持", reversed: "不堪重负、放弃、被动", element: "火", emoji: "🛡️" },
+  { id: 29, name: "权杖八", arcana: "minor", suit: "权杖", number: "8", keywords: "速度、行动、进展、讯息", upright: "快速发展、行动、好消息到来", reversed: "延迟、阻碍、失控加速、混乱", element: "火", emoji: "⚡" },
+  { id: 30, name: "权杖九", arcana: "minor", suit: "权杖", number: "9", keywords: "坚韧、戒备、疲惫、坚持", upright: "韧性、最后坚持、警觉、不轻言放弃", reversed: "筋疲力尽、放弃、偏执", element: "火", emoji: "🛌" },
+  { id: 31, name: "权杖十", arcana: "minor", suit: "权杖", number: "10", keywords: "压力、负担、责任、过度", upright: "承担过多、压力大、责任、坚韧", reversed: "放下负担、委派、崩溃边缘", element: "火", emoji: "📦" },
+  { id: 32, name: "权杖侍从", arcana: "minor", suit: "权杖", number: "侍从", keywords: "探索、热情、讯息、新手", upright: "探索新事物、热情、好消息、学习", reversed: "缺乏方向、三分钟热度、拖延", element: "火", emoji: "🧑‍🎤" },
+  { id: 33, name: "权杖骑士", arcana: "minor", suit: "权杖", number: "骑士", keywords: "冒险、热情、行动、冲动", upright: "冒险精神、热情行动、勇往直前", reversed: "冲动行事、鲁莽、半途而废", element: "火", emoji: "🏇" },
+  { id: 34, name: "权杖皇后", arcana: "minor", suit: "权杖", number: "皇后", keywords: "自信、温暖、活力、勇气", upright: "自信魅力、温暖大方、勇气、活力", reversed: "嫉妒、情绪化、缺乏自信、沮丧", element: "火", emoji: "👸" },
+  { id: 35, name: "权杖国王", arcana: "minor", suit: "权杖", number: "国王", keywords: "领导、远见、创业、权威", upright: "领导力、远见卓识、创业精神、成熟", reversed: "专制、苛刻、鲁莽决策、傲慢", element: "火", emoji: "🤴" },
+  { id: 36, name: "圣杯ACE", arcana: "minor", suit: "圣杯", number: "Ace", keywords: "爱情、情感、新关系、喜悦", upright: "新恋情、情感充盈、喜悦、直觉", reversed: "情感空虚、爱意受阻、失落", element: "水", emoji: "💗" },
+  { id: 37, name: "圣杯二", arcana: "minor", suit: "圣杯", number: "2", keywords: "连接、和谐、平等、合作", upright: "和谐关系、平等合作、友爱、连结", reversed: "关系失衡、分离、争吵、断联", element: "水", emoji: "🤝" },
+  { id: 38, name: "圣杯三", arcana: "minor", suit: "圣杯", number: "3", keywords: "庆祝、友谊、欢乐、姐妹", upright: "庆祝、友谊、欢乐时光、团体活动", reversed: "过度享乐、社交疲劳、小圈子", element: "水", emoji: "🥂" },
+  { id: 39, name: "圣杯四", arcana: "minor", suit: "圣杯", number: "4", keywords: "沉思、不满、冥思、机会", upright: "沉思内省、不满足、新的机会在眼前", reversed: "觉醒、行动、走出低迷", element: "水", emoji: "🧘" },
+  { id: 40, name: "圣杯五", arcana: "minor", suit: "圣杯", number: "5", keywords: "悲伤、失落、遗憾、哀悼", upright: "失落悲伤、遗憾、聚焦损失", reversed: "接纳、走出悲伤、原谅、重拾希望", element: "水", emoji: "😢" },
+  { id: 41, name: "圣杯六", arcana: "minor", suit: "圣杯", number: "6", keywords: "回忆、怀旧、馈赠、童年", upright: "怀旧、美好回忆、馈赠、单纯快乐", reversed: "困于过去、停滞不前", element: "水", emoji: "🧸" },
+  { id: 42, name: "圣杯七", arcana: "minor", suit: "圣杯", number: "7", keywords: "幻想、选择、白日梦、想象", upright: "幻想、多重选择、白日梦、想象力", reversed: "聚焦、明确目标、落地现实", element: "水", emoji: "🌈" },
+  { id: 43, name: "圣杯八", arcana: "minor", suit: "圣杯", number: "8", keywords: "放手、追寻、离开、探索", upright: "追寻更高目标、离开舒适区、探索", reversed: "停滞不前、害怕改变、迷失", element: "水", emoji: "🚶" },
+  { id: 44, name: "圣杯九", arcana: "minor", suit: "圣杯", number: "9", keywords: "满足、如愿、享受、幸福", upright: "愿望成真、满足幸福、自我享受", reversed: "表面光鲜、内在空虚、不满足", element: "水", emoji: "😊" },
+  { id: 45, name: "圣杯十", arcana: "minor", suit: "圣杯", number: "10", keywords: "幸福、圆满、和谐、家庭", upright: "美满家庭、和谐关系、圆满幸福", reversed: "家庭矛盾、关系破裂、不和谐", element: "水", emoji: "🏡" },
+  { id: 46, name: "圣杯侍从", arcana: "minor", suit: "圣杯", number: "侍从", keywords: "灵感、直觉、新情感、讯息", upright: "直觉涌现、情感讯息、灵感、创造", reversed: "情感不成熟、创意受阻、敏感", element: "水", emoji: "🧚" },
+  { id: 47, name: "圣杯骑士", arcana: "minor", suit: "圣杯", number: "骑士", keywords: "浪漫、追求、邀请、理想", upright: "浪漫追求、邀请、理想主义、魅力", reversed: "情感欺骗、不切实际、逃避", element: "水", emoji: "🐴" },
+  { id: 48, name: "圣杯皇后", arcana: "minor", suit: "圣杯", number: "皇后", keywords: "直觉、关怀、敏感、滋养", upright: "直觉敏锐、温柔关怀、情感丰沛", reversed: "过度敏感、情绪淹没、依赖", element: "水", emoji: "👩" },
+  { id: 49, name: "圣杯国王", arcana: "minor", suit: "圣杯", number: "国王", keywords: "成熟、慈悲、智慧、包容", upright: "情感成熟、慈悲包容、智慧、稳重", reversed: "情绪失控、冷酷、压抑情感", element: "水", emoji: "👨" },
+  { id: 50, name: "宝剑ACE", arcana: "minor", suit: "宝剑", number: "Ace", keywords: "真理、清晰、突破、新想法", upright: "突破性想法、真理、清晰头脑、决断", reversed: "混乱、误解、偏见、信息错误", element: "风", emoji: "🗡️" },
+  { id: 51, name: "宝剑二", arcana: "minor", suit: "宝剑", number: "2", keywords: "抉择、僵局、逃避、平衡", upright: "难以抉择、僵局、逃避现实、需要平衡", reversed: "选择清晰、打破僵局、面对真相", element: "风", emoji: "🙈" },
+  { id: 52, name: "宝剑三", arcana: "minor", suit: "宝剑", number: "3", keywords: "痛苦、心碎、悲伤、伤害", upright: "心碎、伤痛、失落、被伤害", reversed: "疗愈、释放痛苦、恢复", element: "风", emoji: "💔" },
+  { id: 53, name: "宝剑四", arcana: "minor", suit: "宝剑", number: "4", keywords: "休息、恢复、沉思、静养", upright: "休息、冥想、恢复精力、静养", reversed: "焦虑不安、无法休息、倦怠", element: "风", emoji: "😴" },
+  { id: 54, name: "宝剑五", arcana: "minor", suit: "宝剑", number: "5", keywords: "冲突、胜败、损失、争执", upright: "争执、冲突、胜之不武、损失", reversed: "和解、妥协、放下争执", element: "风", emoji: "🗣️" },
+  { id: 55, name: "宝剑六", arcana: "minor", suit: "宝剑", number: "6", keywords: "过渡、疗愈、前行、放下", upright: "过渡期、疗愈之旅、走向平静", reversed: "困于过去、无法释怀、拖延", element: "风", emoji: "⛵" },
+  { id: 56, name: "宝剑七", arcana: "minor", suit: "宝剑", number: "7", keywords: "策略、欺骗、隐密、智取", upright: "策略性思考、隐密行动、智取", reversed: "谎言败露、自欺欺人、不诚实", element: "风", emoji: "🦊" },
+  { id: 57, name: "宝剑八", arcana: "minor", suit: "宝剑", number: "8", keywords: "束缚、困境、自我限制、恐惧", upright: "感觉被困、自我设限、恐惧、无力", reversed: "解放、看清真相、重获自由", element: "风", emoji: "🔒" },
+  { id: 58, name: "宝剑九", arcana: "minor", suit: "宝剑", number: "9", keywords: "焦虑、噩梦、担忧、失眠", upright: "焦虑、噩梦、过度担忧、失眠", reversed: "克服焦虑、释放恐惧、求助", element: "风", emoji: "😰" },
+  { id: 59, name: "宝剑十", arcana: "minor", suit: "宝剑", number: "10", keywords: "结束、崩溃、绝望、重生前夕", upright: "低谷、结束、崩溃、黎明前的黑暗", reversed: "否极泰来、重生、走出低谷", element: "风", emoji: "🕯️" },
+  { id: 60, name: "宝剑侍从", arcana: "minor", suit: "宝剑", number: "侍从", keywords: "好奇、警觉、沟通、学习", upright: "好奇心、警觉、求知、沟通", reversed: "八卦、口舌之争、冲动发言", element: "风", emoji: "🧐" },
+  { id: 61, name: "宝剑骑士", arcana: "minor", suit: "宝剑", number: "骑士", keywords: "果断、急速、直言、行动", upright: "果断行动、直言不讳、急速前进", reversed: "冲动、鲁莽、尖刻、方向错误", element: "风", emoji: "🏇" },
+  { id: 62, name: "宝剑皇后", arcana: "minor", suit: "宝剑", number: "皇后", keywords: "理性、独立、洞察、表达", upright: "独立思考、敏锐洞察、理性判断、表达", reversed: "刻薄、冷漠、尖锐、自我封闭", element: "风", emoji: "👩‍⚖️" },
+  { id: 63, name: "宝剑国王", arcana: "minor", suit: "宝剑", number: "国王", keywords: "智慧、公正、权威、分析", upright: "智慧领导、公正分析、理性权威", reversed: "专制、冷酷、滥用智力、不公", element: "风", emoji: "👨‍⚖️" },
+  { id: 64, name: "星币ACE", arcana: "minor", suit: "星币", number: "Ace", keywords: "财富、新机遇、物质、开始", upright: "新财务机遇、丰盛、脚踏实地、礼物", reversed: "财务损失、错失机会、浪费", element: "土", emoji: "🪙" },
+  { id: 65, name: "星币二", arcana: "minor", suit: "星币", number: "2", keywords: "平衡、适应、多任务、变化", upright: "平衡多重任务、适应变化、灵活", reversed: "失衡、过度忙碌、财务混乱", element: "土", emoji: "⚖️" },
+  { id: 66, name: "星币三", arcana: "minor", suit: "星币", number: "3", keywords: "合作、技能、团队、学习", upright: "团队合作、技能提升、专注、学习", reversed: "缺乏合作、技能不足、团队摩擦", element: "土", emoji: "🏗️" },
+  { id: 67, name: "星币四", arcana: "minor", suit: "星币", number: "4", keywords: "保守、储蓄、控制、稳定", upright: "财务稳定、储蓄、保守、安全感", reversed: "过度吝啬、物质至上、害怕失去", element: "土", emoji: "💰" },
+  { id: 68, name: "星币五", arcana: "minor", suit: "星币", number: "5", keywords: "匮乏、困境、孤立、担忧", upright: "财务困难、孤立、缺乏、担忧", reversed: "走出困境、改善、得到帮助", element: "土", emoji: "🏚️" },
+  { id: 69, name: "星币六", arcana: "minor", suit: "星币", number: "6", keywords: "慷慨、分享、慈善、互惠", upright: "慷慨解囊、分享财富、互惠、帮助", reversed: "不平等、债务、过度索取", element: "土", emoji: "🤲" },
+  { id: 70, name: "星币七", arcana: "minor", suit: "星币", number: "7", keywords: "评估、等待、耕耘、投资", upright: "等待收获、评估进展、投资未来", reversed: "不耐烦、浪费潜力、回报不佳", element: "土", emoji: "🌱" },
+  { id: 71, name: "星币八", arcana: "minor", suit: "星币", number: "8", keywords: "勤奋、修炼、专注、手艺", upright: "勤奋工作、技能修炼、专注、精进", reversed: "工作倦怠、马虎、缺乏热情", element: "土", emoji: "🔨" },
+  { id: 72, name: "星币九", arcana: "minor", suit: "星币", number: "9", keywords: "自律、独立、丰盛、优雅", upright: "自律成就、独立丰盛、优雅生活", reversed: "过度工作、孤独、不满足", element: "土", emoji: "🌺" },
+  { id: 73, name: "星币十", arcana: "minor", suit: "星币", number: "10", keywords: "财富、传承、家族、长久", upright: "世代财富、家族传承、长久成功", reversed: "财务损失、家庭纷争、遗产问题", element: "土", emoji: "🏛️" },
+  { id: 74, name: "星币侍从", arcana: "minor", suit: "星币", number: "侍从", keywords: "学习、务实、新技能、讯息", upright: "学习理财、务实、新技能、好消息", reversed: "拖延、缺乏计划、浪费机会", element: "土", emoji: "📚" },
+  { id: 75, name: "星币骑士", arcana: "minor", suit: "星币", number: "骑士", keywords: "勤勉、可靠、务实、责任", upright: "勤奋可靠、脚踏实地、责任、耐心", reversed: "懒惰、停滞、固执、缺乏冒险", element: "土", emoji: "🐂" },
+  { id: 76, name: "星币皇后", arcana: "minor", suit: "星币", number: "皇后", keywords: "丰盛、滋养、实用、优雅", upright: "丰盛富足、务实关怀、优雅、享受", reversed: "过度物质、忽视自我、不安全感", element: "土", emoji: "👩‍🌾" },
+  { id: 77, name: "星币国王", arcana: "minor", suit: "星币", number: "国王", keywords: "成功、富足、商业、领袖", upright: "商业成功、富足领袖、稳重、成就", reversed: "贪婪、腐败、财务失误、僵化", element: "土", emoji: "🤴" }
+];
+function drawTarotCards(count) {
+    const shuffled = [...TAROT_CARDS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count).map(c => ({ ...c, isReversed: Math.random() < 0.3 }));
+}
+
+// ===== 星骰数据 =====
+const PLANETS = [
+    { id: "sun", name: "太阳", symbol: "☉", meaning: "自我、核心、生命力、意志" },
+    { id: "moon", name: "月亮", symbol: "☽", meaning: "情感、潜意识、直觉、习惯" },
+    { id: "mercury", name: "水星", symbol: "☿", meaning: "沟通、思维、交流、学习" },
+    { id: "venus", name: "金星", symbol: "♀", meaning: "爱情、审美、价值、和谐" },
+    { id: "mars", name: "火星", symbol: "♂", meaning: "行动、欲望、勇气、竞争" },
+    { id: "jupiter", name: "木星", symbol: "♃", meaning: "幸运、扩张、智慧、成长" },
+    { id: "saturn", name: "土星", symbol: "♄", meaning: "责任、限制、纪律、功课" },
+    { id: "uranus", name: "天王星", symbol: "♅", meaning: "变革、创新、自由、突破" },
+    { id: "neptune", name: "海王星", symbol: "♆", meaning: "梦幻、灵感、消融、灵性" },
+    { id: "pluto", name: "冥王星", symbol: "♇", meaning: "蜕变、深层、权力、重生" },
+    { id: "north_node", name: "北交点", symbol: "☊", meaning: "成长方向、人生课题、命运" },
+    { id: "south_node", name: "南交点", symbol: "☋", meaning: "过去习惯、舒适区、业力" }
+];
+const SIGNS = [
+    { id: "aries", name: "白羊座", symbol: "♈", element: "火", meaning: "开创、勇敢、直接、冲劲" },
+    { id: "taurus", name: "金牛座", symbol: "♉", element: "土", meaning: "稳定、享受、固执、务实" },
+    { id: "gemini", name: "双子座", symbol: "♊", element: "风", meaning: "多变、好奇、沟通、灵活" },
+    { id: "cancer", name: "巨蟹座", symbol: "♋", element: "水", meaning: "情感、保护、敏感、家庭" },
+    { id: "leo", name: "狮子座", symbol: "♌", element: "火", meaning: "自信、表现、热情、领导" },
+    { id: "virgo", name: "处女座", symbol: "♍", element: "土", meaning: "分析、完美、服务、细节" },
+    { id: "libra", name: "天秤座", symbol: "♎", element: "风", meaning: "平衡、审美、合作、公正" },
+    { id: "scorpio", name: "天蝎座", symbol: "♏", element: "水", meaning: "深度、洞察、蜕变、掌控" },
+    { id: "sagittarius", name: "射手座", symbol: "♐", element: "火", meaning: "探索、自由、乐观、追求" },
+    { id: "capricorn", name: "摩羯座", symbol: "♑", element: "土", meaning: "野心、自律、成就、责任" },
+    { id: "aquarius", name: "水瓶座", symbol: "♒", element: "风", meaning: "创新、独立、人道、前卫" },
+    { id: "pisces", name: "双鱼座", symbol: "♓", element: "水", meaning: "梦幻、共情、艺术、灵性" }
+];
+const HOUSES = [
+    { id: 1, name: "第1宫", symbol: "I", meaning: "自我形象、外在表现、新开始" },
+    { id: 2, name: "第2宫", symbol: "II", meaning: "财富、价值观、资源、自我价值" },
+    { id: 3, name: "第3宫", symbol: "III", meaning: "沟通、学习、兄弟姐妹、短途旅行" },
+    { id: 4, name: "第4宫", symbol: "IV", meaning: "家庭、根源、内心世界、安全感" },
+    { id: 5, name: "第5宫", symbol: "V", meaning: "创造、恋爱、娱乐、子女、表现" },
+    { id: 6, name: "第6宫", symbol: "VI", meaning: "工作、健康、日常、服务" },
+    { id: 7, name: "第7宫", symbol: "VII", meaning: "伴侣、合作、婚姻、公开关系" },
+    { id: 8, name: "第8宫", symbol: "VIII", meaning: "深层连接、危机、转变、共享资源" },
+    { id: 9, name: "第9宫", symbol: "IX", meaning: "旅行、哲学、高等教育、信仰" },
+    { id: 10, name: "第10宫", symbol: "X", meaning: "事业、社会地位、成就、名声" },
+    { id: 11, name: "第11宫", symbol: "XI", meaning: "社交、朋友、理想、团体" },
+    { id: 12, name: "第12宫", symbol: "XII", meaning: "潜意识、独处、灵性、隐藏" }
+];
+function rollAstroDice() {
+    return {
+        planet: PLANETS[Math.floor(Math.random() * PLANETS.length)],
+        sign: SIGNS[Math.floor(Math.random() * SIGNS.length)],
+        house: HOUSES[Math.floor(Math.random() * HOUSES.length)]
+    };
+}
+
+// ===== 主逻辑 =====
+let currentCards = [];
+let currentAstro = null;
+let apiKey = localStorage.getItem('astro_api_key') || '';
+const DEEPSEEK_API = 'https://api.deepseek.com/chat/completions';
+const API_ENDPOINT = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '/api/proxy'
+    : DEEPSEEK_API;
+
+function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openApiModal() { document.getElementById('api-modal').classList.add('active'); }
+function saveApiKey() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (key) { apiKey = key; localStorage.setItem('astro_api_key', key);
+        document.getElementById('api-modal').classList.remove('active'); showToast('API Key 已保存'); }
+    else { showToast('请输入有效的 API Key'); }
+}
+function skipApiKey() { document.getElementById('api-modal').classList.remove('active'); }
+
+async function testApiConnection() {
+    const key = document.getElementById('api-key-input').value.trim() || apiKey;
+    const resultEl = document.getElementById('test-result');
+    const btn = document.getElementById('test-api-btn');
+    if (!key) { resultEl.innerHTML = '<span style="color:#ff6b6b;">请先输入 API Key</span>'; return; }
+    btn.disabled = true; btn.textContent = '测试中...';
+    resultEl.innerHTML = '<span style="color:var(--text-dim);">正在连接...</span>';
+    try {
+        const res = await fetch(API_ENDPOINT, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+            body: JSON.stringify({ model: 'deepseek-chat', max_tokens: 50, messages: [{ role: 'user', content: '回复"ok"表示连接成功' }] })
+        });
+        if (res.ok) {
+            resultEl.innerHTML = '<span style="color:#4ade80;">✓ 连接成功！API Key 有效</span>';
+            apiKey = key; localStorage.setItem('astro_api_key', key);
+        } else {
+            let errMsg = 'HTTP ' + res.status;
+            try { const e = await res.json(); errMsg += ': ' + (e.error?.message || JSON.stringify(e)); } catch { errMsg += await res.text().catch(() => ''); }
+            resultEl.innerHTML = '<span style="color:#ff6b6b;">✗ ' + errMsg + '</span>';
+        }
+    } catch (err) { resultEl.innerHTML = '<span style="color:#ff6b6b;">✗ 网络错误：' + err.message + '</span>'; }
+    btn.disabled = false; btn.textContent = '测试连接';
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('btn-opt')) {
+        document.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+    }
+});
+
+let loadingTimer = null;
+function startLoadingMessages(elId, messages) {
+    const el = document.getElementById(elId); let i = 0;
+    el.textContent = messages[0];
+    loadingTimer = setInterval(() => { i = (i + 1) % messages.length; el.textContent = messages[i]; }, 5000);
+}
+function stopLoadingMessages() { if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; } }
+
+function showToast(msg, duration) {
+    const old = document.querySelector('.toast'); if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'toast'; el.textContent = msg;
+    Object.assign(el.style, {
+        position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+        background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--gold)',
+        borderRadius: '10px', padding: '12px 24px', zIndex: '2000',
+        fontSize: '14px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+        animation: 'fadeIn 0.3s ease', maxWidth: '90vw', textAlign: 'center'
+    });
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), duration || 2500);
+}
+
+// Tarot
+function getCardCount() {
+    const active = document.querySelector('#card-count-options .btn-opt.active');
+    return active ? parseInt(active.dataset.value) : 1;
+}
+function startTarotReading() {
+    const count = getCardCount();
+    document.getElementById('tarot-setup').classList.add('hidden');
+    document.getElementById('tarot-spread').classList.add('hidden');
+    document.getElementById('tarot-interpretation').classList.add('hidden');
+    document.getElementById('tarot-shuffle').classList.remove('hidden');
+    setTimeout(() => {
+        currentCards = drawTarotCards(count);
+        renderTarotSpread(currentCards);
+        document.getElementById('tarot-shuffle').classList.add('hidden');
+        document.getElementById('tarot-spread').classList.remove('hidden');
+        window.scrollTo({ top: document.getElementById('card-spread').offsetTop - 80, behavior: 'smooth' });
+    }, 2000);
+}
+function renderTarotSpread(cards) {
+    const container = document.getElementById('card-spread');
+    container.innerHTML = '';
+    cards.forEach((card, i) => {
+        const div = document.createElement('div');
+        div.className = 'tarot-card';
+        const inner = document.createElement('div');
+        inner.className = 'tarot-card-inner';
+        const face = document.createElement('div');
+        face.className = 'tarot-card-face';
+        face.innerHTML = '<div class="tarot-card-icon">' + (card.emoji || '🃏') + '</div>' +
+            '<div class="tarot-card-number">' + (card.arcana === 'major' ? '大阿卡纳 ' + card.number : card.suit + ' ' + card.number) + '</div>' +
+            '<div class="tarot-card-name">' + card.name + (card.isReversed ? ' (逆位)' : '') + '</div>' +
+            '<div class="tarot-card-keywords">' + card.keywords + '</div>';
+        inner.appendChild(face);
+        div.appendChild(inner);
+        setTimeout(() => { div.classList.add('revealed'); }, 500 + i * 200);
+        container.appendChild(div);
+    });
+}
+
+async function callAPI(prompt) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    try {
+        const res = await fetch(API_ENDPOINT, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+            body: JSON.stringify({ model: 'deepseek-chat', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+            let errMsg = 'HTTP ' + res.status;
+            try { const e = await res.json(); errMsg += ': ' + (e.error?.message || JSON.stringify(e)); } catch { errMsg += await res.text().catch(() => ''); }
+            throw new Error(errMsg);
+        }
+        const data = await res.json();
+        return data.choices[0].message.content;
+    } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') throw new Error('请求超时，请稍后重试');
+        throw err;
+    }
+}
+
+function getErrorHTML(err) {
+    var msg = err.message || String(err);
+    var suggestion = '请检查 API Key 是否正确，或稍后重试。';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) suggestion = '无法连接到 DeepSeek 服务器，请检查网络连接。\n如果在中国大陆，api.deepseek.com 应该可以直接访问。';
+    else if (msg.includes('401') || msg.includes('invalid')) suggestion = 'API Key 无效或已过期，请在右上角重新输入。';
+    else if (msg.includes('529')) suggestion = 'API 负载过高，请稍后重试。';
+    return '<p style="color:#ff6b6b;">解读出错了</p><p style="color:var(--text-dim);font-size:13px;margin:8px 0;">' + msg + '</p><p style="color:var(--text-dim);margin-top:12px;font-size:14px;">' + suggestion + '</p>';
+}
+
+async function interpretTarot() {
+    if (!apiKey) { openApiModal(); showToast('请先配置 API Key'); return; }
+    const question = document.getElementById('tarot-question').value.trim() || '未指定具体问题';
+    document.getElementById('tarot-interpretation').classList.remove('hidden');
+    document.getElementById('tarot-reading-text').classList.add('hidden');
+    document.getElementById('tarot-loading').classList.remove('hidden');
+    window.scrollTo({ top: document.getElementById('tarot-interpretation').offsetTop - 80, behavior: 'smooth' });
+    startLoadingMessages('tarot-loading-text', ['正在请求 AI 解读...','DeepSeek 正在思考中...','请耐心等待，快要好了...','AI 正在分析牌面...']);
+    const cardsDesc = currentCards.map(function(c, i) {
+        var pos = ['第1张','第2张','第3张','第4张','第5张','第6张','第7张','第8张','第9张','第10张'][i];
+        return pos + '牌：' + c.name + '（' + (c.isReversed ? '逆位' : '正位') + '）\n所属：' + (c.arcana === 'major' ? '大阿卡纳' : c.suit) + '\n关键词：' + c.keywords + '\n核心含义：' + (c.isReversed ? c.reversed : c.upright);
+    }).join('\n');
+    try {
+        var text = await callAPI('你是一位智慧的塔罗占卜师。请根据以下塔罗牌面，为提问者提供深度解读。\n\n提问者的问题：' + question + '\n\n抽到的牌（按顺序）：\n' + cardsDesc + '\n\n请提供：\n1. **整体能量**：简要总结这组牌面的整体能量和主题\n2. **逐牌解读**：每张牌的详细含义及其在问题中的启示\n3. **综合建议**：基于这些牌，给提问者的行动建议\n\n注意事项：\n- 语气温和而深刻，充满共情与智慧\n- 避免绝对化的预言，以启发和引导为主\n- 使用中文，语言优美但不过分华丽\n- 适当引用塔罗的象征意义');
+        stopLoadingMessages();
+        document.getElementById('tarot-question').value = '';
+        document.getElementById('tarot-reading-text').textContent = text;
+        document.getElementById('tarot-reading-text').classList.remove('hidden');
+        document.getElementById('tarot-loading').classList.add('hidden');
+    } catch (err) {
+        stopLoadingMessages();
+        document.getElementById('tarot-loading').classList.add('hidden');
+        document.getElementById('tarot-reading-text').classList.remove('hidden');
+        document.getElementById('tarot-reading-text').innerHTML = getErrorHTML(err);
+    }
+}
+function resetTarot() {
+    currentCards = [];
+    document.getElementById('tarot-setup').classList.remove('hidden');
+    document.getElementById('tarot-spread').classList.add('hidden');
+    document.getElementById('tarot-interpretation').classList.add('hidden');
+    document.getElementById('tarot-question').value = '';
+}
+
+// Astro
+function rollAstroDice() {
+    var a = window.rollAstroDice();
+    document.getElementById('astro-setup').classList.add('hidden');
+    document.getElementById('astro-result').classList.add('hidden');
+    document.getElementById('astro-interpretation').classList.add('hidden');
+    document.getElementById('astro-rolling').classList.remove('hidden');
+    let count = 0;
+    const interval = setInterval(function() {
+        document.getElementById('dice-planet').textContent = PLANETS[Math.floor(Math.random()*PLANETS.length)].symbol;
+        document.getElementById('dice-sign').textContent = SIGNS[Math.floor(Math.random()*SIGNS.length)].symbol;
+        document.getElementById('dice-house').textContent = HOUSES[Math.floor(Math.random()*HOUSES.length)].symbol;
+        count++;
+        if (count > 12) {
+            clearInterval(interval);
+            currentAstro = a;
+            showAstroResult(a);
+            document.getElementById('astro-rolling').classList.add('hidden');
+            document.getElementById('astro-result').classList.remove('hidden');
+            window.scrollTo({ top: document.getElementById('astro-result').offsetTop - 80, behavior: 'smooth' });
+        }
+    }, 150);
+}
+function showAstroResult(a) {
+    document.getElementById('astro-planet').textContent = a.planet.symbol;
+    document.getElementById('astro-planet-name').textContent = a.planet.name;
+    document.getElementById('astro-sign').textContent = a.sign.symbol;
+    document.getElementById('astro-sign-name').textContent = a.sign.name;
+    document.getElementById('astro-house').textContent = a.house.symbol;
+    document.getElementById('astro-house-name').textContent = a.house.name;
+    document.getElementById('astro-combination').innerHTML = '<strong>' + a.planet.name + '</strong>（' + a.planet.meaning + '）在<strong>' + a.sign.name + '</strong>（' + a.sign.meaning + '），落于<strong>' + a.house.name + '</strong>（' + a.house.meaning + '）';
+}
+async function interpretAstro() {
+    if (!apiKey) { openApiModal(); showToast('请先配置 API Key'); return; }
+    const question = document.getElementById('astro-question').value.trim() || '未指定具体问题';
+    document.getElementById('astro-interpretation').classList.remove('hidden');
+    document.getElementById('astro-reading-text').classList.add('hidden');
+    document.getElementById('astro-loading').classList.remove('hidden');
+    window.scrollTo({ top: document.getElementById('astro-interpretation').offsetTop - 80, behavior: 'smooth' });
+    startLoadingMessages('astro-loading-text', ['正在请求 AI 解读...','DeepSeek 正在思考中...','请耐心等待，快要好了...','AI 正在解析星辰之语...']);
+    var a = currentAstro;
+    try {
+        var text = await callAPI('你是一位智慧的占星师。请根据以下星骰结果，为提问者提供深度解读。\n\n提问者的问题：' + question + '\n\n星骰结果：\n- 行星：' + a.planet.name + '（' + a.planet.meaning + '）\n- 星座：' + a.sign.name + '（' + a.sign.meaning + '，' + a.sign.element + '象星座）\n- 宫位：' + a.house.name + '（' + a.house.meaning + '）\n\n组合含义：' + a.planet.name + '在' + a.sign.name + '，落于' + a.house.name + '\n\n请提供：\n1. **核心解读**：简要说明这个星骰组合的核心含义（3-5句话）\n2. **详细分析**：从行星能量、星座特质和宫位领域三个层面深入分析\n3. **行动指引**：给提问者的建议和注意事项\n\n注意事项：\n- 语气温和而深刻，充满共情与智慧\n- 避免绝对化的预言，以启发和引导为主\n- 使用中文，语言优美但不过分华丽');
+        stopLoadingMessages();
+        document.getElementById('astro-question').value = '';
+        document.getElementById('astro-reading-text').textContent = text;
+        document.getElementById('astro-reading-text').classList.remove('hidden');
+        document.getElementById('astro-loading').classList.add('hidden');
+    } catch (err) {
+        stopLoadingMessages();
+        document.getElementById('astro-loading').classList.add('hidden');
+        document.getElementById('astro-reading-text').classList.remove('hidden');
+        document.getElementById('astro-reading-text').innerHTML = getErrorHTML(err);
+    }
+}
+function resetAstro() {
+    currentAstro = null;
+    document.getElementById('astro-setup').classList.remove('hidden');
+    document.getElementById('astro-result').classList.add('hidden');
+    document.getElementById('astro-interpretation').classList.add('hidden');
+    document.getElementById('astro-question').value = '';
+}
+document.addEventListener('DOMContentLoaded', function() { if (!apiKey) setTimeout(openApiModal, 500); });
+</script>
+</body>
+</html>

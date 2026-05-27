@@ -6,7 +6,9 @@
 let currentCards = [];
 let currentAstro = null;
 let apiKey = localStorage.getItem('astro_api_key') || '';
-const API_PROXY = '/api/proxy';
+const API_PROXY = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? '/api/proxy'
+    : 'https://divination-site.vercel.app/api/proxy';
 
 // ---------- 视图切换 ----------
 function showView(viewId) {

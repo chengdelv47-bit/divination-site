@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星启占卜 — 塔罗牌 · 星骰</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== 星空背景 ========== -->
+<div id="stars"></div>
+
+<!-- ========== API KEY 弹窗 ========== -->
+<div id="api-modal" class="modal">
+    <div class="modal-content">
+        <h2>🔮 配置 AI 解读</h2>
+        <p>输入你的 DeepSeek API Key 以获得 AI 智能解读</p>
+        <p class="hint">密钥仅保存在本地浏览器，不会上传到服务器</p>
+        <input type="password" id="api-key-input" placeholder="sk-..." />
+        <button class="btn-primary" onclick="saveApiKey()">确认</button>
+        <button class="btn-secondary" onclick="testApiConnection()" id="test-api-btn">测试连接</button>
+        <button class="btn-secondary" onclick="skipApiKey()">跳过，稍后设置</button>
+        <div id="test-result" style="margin-top:12px;font-size:13px;min-height:20px;"></div>
+        <hr style="border-color:var(--border);margin:20px 0;">
+        <p style="font-size:13px;color:var(--text-dim);">⚠️ 使用代理服务器启动（解决浏览器跨域限制）：</p>
+        <code id="server-cmd" style="display:block;background:#0a0a1a;padding:10px;border-radius:6px;font-size:13px;margin:8px 0;cursor:pointer;" onclick="copyServerCmd()">cd /d "C:\Users\Sareo\Desktop\divination-site" && python server.py</code>
+        <p style="font-size:12px;color:#666688;">点击上方命令复制，在终端中运行，然后访问 <a href="http://localhost:8080" style="color:var(--gold);" target="_blank">http://localhost:8080</a></p>
+    </div>
+</div>
+
+<!-- ========== 导航栏 ========== -->
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="#" onclick="showView('home')" class="nav-logo">✦ 星启占卜</a>
+        <div class="nav-links">
+            <a href="#" onclick="showView('home')">首页</a>
+            <a href="#" onclick="showView('tarot')">塔罗牌</a>
+            <a href="#" onclick="showView('astro')">星骰</a>
+            <a href="#" onclick="openApiModal()">API</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ========== 主容器 ========== -->
+<main id="app">
+
+    <!-- ===== 首页 ===== -->
+    <section id="view-home" class="view active">
+        <div class="hero">
+            <div class="hero-icon">✦</div>
+            <h1>星启占卜</h1>
+            <p class="subtitle">塔罗牌 &amp; 星骰 · AI 智慧解读</p>
+            <p class="desc">在星辰的指引下，探索你内心的答案</p>
+        </div>
+        <div class="card-selector">
+            <div class="pick-card" onclick="showView('tarot')">
+                <div class="pick-icon">🃏</div>
+                <h3>塔罗牌</h3>
+                <p>抽取塔罗牌，获得来自高我的指引</p>
+                <span class="pick-btn">开始占卜 →</span>
+            </div>
+            <div class="pick-card" onclick="showView('astro')">
+                <div class="pick-icon">🎲</div>
+                <h3>星骰</h3>
+                <p>投掷星骰，解读星辰的讯息</p>
+                <span class="pick-btn">开始占卜 →</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 塔罗牌 ===== -->
+    <section id="view-tarot" class="view">
+        <div class="view-header">
+            <h2>🃏 塔罗牌占卜</h2>
+            <p>选择牌阵，专注你的问题，然后抽牌</p>
+        </div>
+
+        <!-- 设置区 -->
+        <div id="tarot-setup" class="setup-area">
+            <div class="form-group">
+                <label>选择牌阵</label>
+                <div class="btn-group" id="card-count-options">
+                    <button class="btn-opt active" data-value="1">单张</button>
+                    <button class="btn-opt" data-value="3">三张</button>
+                    <button class="btn-opt" data-value="5">五张</button>
+                    <button class="btn-opt" data-value="10">十张</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>你的问题（可选）</label>
+                <input type="text" id="tarot-question" placeholder="例如：我当前的事业发展如何？" />
+            </div>
+            <button class="btn-primary" onclick="startTarotReading()">✨ 开始抽牌</button>
+        </div>
+
+        <!-- 洗牌动画区 -->
+        <div id="tarot-shuffle" class="shuffle-area hidden">
+            <div class="shuffle-cards">
+                <div class="sh-card"></div>
+                <div class="sh-card"></div>
+                <div class="sh-card"></div>
+                <div class="sh-card"></div>
+                <div class="sh-card"></div>
+            </div>
+            <p class="shuffle-text">正在洗牌...</p>
+        </div>
+
+        <!-- 牌阵展示 -->
+        <div id="tarot-spread" class="spread-area hidden">
+            <div id="card-spread" class="card-spread"></div>
+            <button class="btn-primary" onclick="interpretTarot()">🔮 AI 解读</button>
+            <button class="btn-secondary" onclick="resetTarot()">重新洗牌</button>
+        </div>
+
+        <!-- 解读区 -->
+        <div id="tarot-interpretation" class="interpretation hidden">
+            <h3>🔮 塔罗解读</h3>
+            <div id="tarot-reading-text" class="reading-text"></div>
+            <div class="reading-loading hidden" id="tarot-loading">
+                <div class="spinner"></div>
+                <p id="tarot-loading-text">正在请求 AI 解读...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 星骰 ===== -->
+    <section id="view-astro" class="view">
+        <div class="view-header">
+            <h2>🎲 星骰占卜</h2>
+            <p>投掷星骰，解读行星、星座与宫位的组合信息</p>
+        </div>
+
+        <!-- 设置 -->
+        <div id="astro-setup" class="setup-area">
+            <div class="form-group">
+                <label>你的问题（可选）</label>
+                <input type="text" id="astro-question" placeholder="例如：我和TA的关系走向如何？" />
+            </div>
+            <button class="btn-primary" onclick="rollAstroDice()">🎲 投掷星骰</button>
+        </div>
+
+        <!-- 摇骰动画 -->
+        <div id="astro-rolling" class="shuffle-area hidden">
+            <div class="dice-container">
+                <div class="dice" id="astro-dice-anim">
+                    <div class="dice-face" id="dice-planet">☉</div>
+                    <div class="dice-face" id="dice-sign">♈</div>
+                    <div class="dice-face" id="dice-house">Ⅰ</div>
+                </div>
+            </div>
+            <p class="shuffle-text">星辰之力正在运转...</p>
+        </div>
+
+        <!-- 结果 -->
+        <div id="astro-result" class="spread-area hidden">
+            <div class="astro-cards">
+                <div class="astro-item">
+                    <span class="astro-label">行星</span>
+                    <span class="astro-value" id="astro-planet"></span>
+                    <span class="astro-name" id="astro-planet-name"></span>
+                </div>
+                <div class="astro-plus">+</div>
+                <div class="astro-item">
+                    <span class="astro-label">星座</span>
+                    <span class="astro-value" id="astro-sign"></span>
+                    <span class="astro-name" id="astro-sign-name"></span>
+                </div>
+                <div class="astro-plus">+</div>
+                <div class="astro-item">
+                    <span class="astro-label">宫位</span>
+                    <span class="astro-value" id="astro-house"></span>
+                    <span class="astro-name" id="astro-house-name"></span>
+                </div>
+            </div>
+
+            <div id="astro-combination" class="astro-combination"></div>
+
+            <button class="btn-primary" onclick="interpretAstro()">🔮 AI 解读</button>
+            <button class="btn-secondary" onclick="resetAstro()">重新投掷</button>
+        </div>
+
+        <!-- 解读 -->
+        <div id="astro-interpretation" class="interpretation hidden">
+            <h3>🔮 星骰解读</h3>
+            <div id="astro-reading-text" class="reading-text"></div>
+            <div class="reading-loading hidden" id="astro-loading">
+                <div class="spinner"></div>
+                <p id="astro-loading-text">正在请求 AI 解读...</p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ========== Footer ========== -->
+<footer class="footer">
+    <p>✦ 星启占卜 — 仅供娱乐参考，你的生活由你主宰 ✦</p>
+</footer>
+
+<script src="data/tarot.js"></script>
+<script src="data/astro-dice.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

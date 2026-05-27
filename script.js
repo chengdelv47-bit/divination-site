@@ -6,9 +6,10 @@
 let currentCards = [];
 let currentAstro = null;
 let apiKey = localStorage.getItem('astro_api_key') || '';
+const DEEPSEEK_API = 'https://api.deepseek.com/chat/completions';
 const API_PROXY = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? '/api/proxy'
-    : 'https://divination-site.vercel.app/api/proxy';
+    : DEEPSEEK_API;
 
 // ---------- 视图切换 ----------
 function showView(viewId) {
